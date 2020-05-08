@@ -55,13 +55,39 @@ python -c "import ogb; print(ogb.__version__)"
 pip install -U ogb
 ```
 
-
 #### From source
 You can also install OGB from source. This is recommended if you want to contribute to OGB.
 ```bash
 git clone https://github.com/snap-stanford/ogb
 cd ogb
 python setup.py install
+```
+
+#### CJ: Custom installation steps
+```sh
+git clone https://github.com/chaitjo/ogb
+cd ogb
+conda create -n ogb python=3.7
+conda activate ogb
+
+# Install PyTorch 1.4 for CUDA 10.0
+conda install pytorch=1.4 cudatoolkit=10.0 -c pytorch
+
+# Install PyTorch Geometric for CUDA 10.0
+pip install torch-scatter==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+pip install torch-sparse==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+pip install torch-cluster==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+pip install torch-spline-conv==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+pip install torch-geometric==1.4.3
+
+# Install DGL for CUDA 10.0
+conda install -c dglteam dgl-cuda10.0
+
+# Complete setup
+python setup.py install
+
+# Optional
+conda install jupyterlab -c conda-forge
 ```
 
 ## Example
