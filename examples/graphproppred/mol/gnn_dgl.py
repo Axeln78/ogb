@@ -7,8 +7,45 @@ import dgl
 from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 
 
+class MLPLayer(nn.Module):
+    def __init__(self, input_dim, output_dim, dropout=0.0, batch_norm=True, residual=True, **kwargs):
+        super().__init__()
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+        self.residual = residual
+        
+        if input_dim != output_dim:
+            self.residual = False
+        
+        self.A = nn.Linear(input_dim, output_dim, bias=True)
+        
+        self.bn_node_h = nn.BatchNorm1d(output_dim)
+        
+        if dropout != 0.0:
+            self.drop_h = nn.Dropout(dropout)
+
+    def forward(self, g, h, e, snorm_n, snorm_e):
+        
+        h_in = h  # for residual connection
+        
+        h = self.A(h) 
+        
+        if self.batch_norm:
+            h = self.bn_node_h(h)  # batch normalization  
+        
+        h = F.relu(h)  # non-linear activation
+        
+        if self.residual:
+            h = h_in + h  # residual connection
+            
+        if self.dropout != 0:
+            h = self.drop_h(h)  # dropout  
+        
+        return h, e
+
+
 class GatedGCNLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout=0.0, graph_norm=True, batch_norm=True, residual=True):
+    def __init__(self, input_dim, output_dim, dropout=0.0, graph_norm=True, batch_norm=True, residual=True, **kwargs):
         super().__init__()
         self.dropout = dropout
         self.graph_norm = graph_norm
@@ -106,10 +143,11 @@ class GNN(nn.Module):
         
         gnn_layer = {
             'gated-gcn': GatedGCNLayer,
+            'mlp': MLPLayer,
         }.get(gnn_type, GatedGCNLayer)
          
         self.layers = nn.ModuleList([
-            gnn_layer(emb_dim, emb_dim, dropout, graph_norm, batch_norm, residual) 
+            gnn_layer(emb_dim, emb_dim, dropout=dropout, graph_norm=graph_norm, batch_norm=batch_norm, residual=residual) 
                 for _ in range(num_layer) 
         ])
         
