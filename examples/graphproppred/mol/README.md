@@ -8,6 +8,9 @@ This repository includes the scripts for GNN baselines for `ogbg-mol*` dataset.
 # Run with default config.
 # $DATASET, $GNN_TYPE, and $FILENAME are described below.
 python main_pyg.py --dataset $DATASET --gnn $GNN_TYPE --filename $FILENAME
+
+# Run with DGL
+python main_dgl.py --dataset $DATASET --gnn $GNN_TYPE --filename $FILENAME
 ```
 
 ### `$DATASET`
@@ -38,6 +41,10 @@ The last three datasets (`ogbg-molesol`, `ogbg-molfreesolv`, `ogbg-mollipo`) are
 
 \* Additional nodes that are connected to all the nodes in the original graphs.
 
+For DGL, the following `$GNN_TYPE$` are supported:
+- `gated-gcn`: Gated Graph ConvNet [5]
+- `mlp`: Graph-agnostic MLP baseline [5]
+
 ### `$FILENAME`: Specifying output files. 
 `$FILENAME` specifies the filename to save the result. The result is a dictionary containing (1) best training performance (`'BestTrain'`), (2) best validation performance (`'Val'`), (3) test performance at the best validation epoch (`'Test'`), and (4) training performance at the best validation epoch (`'Train'`).
 
@@ -54,3 +61,5 @@ This code can be used when one wants to perform transfer learning from external 
 [3] Kipf, T. N., & Welling, M. (2017). Semi-supervised classification with graph convolutional networks. ICLR 2017
 
 [4] Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., & Dahl, G. E. Neural message passing for quantum chemistry. ICML 2017.
+
+[5] Dwivedi, V. P., Joshi, C. K., Laurent, T., Bengio, Y., Bresson, X. Benchmarking Graph Neural Networks. ArXiv 2020.
