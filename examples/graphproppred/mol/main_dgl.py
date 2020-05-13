@@ -76,13 +76,13 @@ def collate_dgl(samples):
     
     batched_graph = dgl.batch(graphs)
     
-    labels = torch.tensor(np.array(labels)).unsqueeze(-1)
+    labels = torch.stack(labels)
     
     tab_sizes_n = [ graphs[i].number_of_nodes() for i in range(len(graphs))]
-    tab_snorm_n = [ torch.FloatTensor(size, 1).fill_(1./float(size)) for size in tab_sizes_n ]
+    tab_snorm_n = [ torch.FloatTensor(size, 1).fill_(1./(float(size) + 1e-6)) for size in tab_sizes_n ]
     snorm_n = torch.cat(tab_snorm_n).sqrt()  
     tab_sizes_e = [ graphs[i].number_of_edges() for i in range(len(graphs))]
-    tab_snorm_e = [ torch.FloatTensor(size, 1).fill_(1./float(size)) for size in tab_sizes_e ]
+    tab_snorm_e = [ torch.FloatTensor(size, 1).fill_(1./(float(size) + 1e-6)) for size in tab_sizes_e ]
     snorm_e = torch.cat(tab_snorm_e).sqrt()
     
     return batched_graph, labels, snorm_n, snorm_e
@@ -102,7 +102,7 @@ def main():
     parser.add_argument('--emb_dim', type=int, default=300,
                         help='dimensionality of hidden units in GNNs (default: 300)')
     parser.add_argument('--batch_size', type=int, default=64,
-                        help='input batch size for training (default: 32)')
+                        help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=100,
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--lr', type=float, default=1e-3,
