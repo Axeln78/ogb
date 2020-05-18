@@ -142,6 +142,11 @@ def main():
                     emb_dim=args.emb_dim, dropout=args.dropout, graph_norm=True, batch_norm=True, 
                     residual=True, graph_pooling="mean")
         model.to(device)
+    elif args.gnn == 'Cheb_net':
+        model = GNN(gnn_type='Cheb_net', num_tasks=dataset.num_tasks, num_layer=args.num_layer, 
+                    emb_dim=args.emb_dim, dropout=args.dropout, graph_norm=True, batch_norm=True, 
+                    residual=True, graph_pooling="mean")
+        model.to(device)
     else:
         raise ValueError('Invalid GNN type')
     

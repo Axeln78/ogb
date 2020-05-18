@@ -55,7 +55,7 @@ class GCNConv(MessagePassing):
 
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
-        return self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.dpropagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
