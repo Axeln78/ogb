@@ -117,6 +117,24 @@ class GatedGCNLayer(nn.Module):
         return h, e
 
 
+class MLPReadout(nn.Module):
+
+    def __init__(self, input_dim, output_dim, L=2):
+        super().__init__()
+        list_FC_layers = [ nn.Linear( input_dim//2**l , input_dim//2**(l+1) , bias=True ) for l in range(L) ]
+        list_FC_layers.append(nn.Linear( input_dim//2**L , output_dim , bias=True ))
+        self.FC_layers = nn.ModuleList(list_FC_layers)
+        self.L = L
+        
+    def forward(self, x):
+        y = x
+        for l in range(self.L):
+            y = self.FC_layers[l](y)
+            y = F.relu(y)
+        y = self.FC_layers[self.L](y)
+        return y
+    
+
 class GNN(nn.Module):
     
     def __init__(self, gnn_type, num_tasks, num_layer=4, emb_dim=256, 
@@ -151,7 +169,7 @@ class GNN(nn.Module):
             "max": dgl.max_nodes,
         }.get(graph_pooling, dgl.mean_nodes)
         
-        self.graph_pred_linear = torch.nn.Linear(emb_dim, num_tasks)
+        self.graph_pred_linear = MLPReadout(emb_dim, num_tasks)
         
     def forward(self, g, h, e):
         
