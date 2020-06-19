@@ -55,59 +55,6 @@ class MLPLayer(nn.Module):
         return h, e
 
 
-class GCNLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout=0.0, batch_norm=True, residual=True, **kwargs):
-        super().__init__()
-        self.dropout = dropout
-        self.batch_norm = batch_norm
-        self.residual = residual
-        
-        if input_dim != output_dim:
-            self.residual = False
-        
-        self.A = nn.Linear(input_dim, output_dim, bias=True)
-        self.B = nn.Linear(input_dim, output_dim, bias=True)
-        
-        self.bn_node_h = nn.BatchNorm1d(output_dim)
-        
-        if dropout != 0.0:
-            self.drop_h = nn.Dropout(dropout)
-
-    def message_func(self, edges):
-        Bh_j = edges.src['Bh'] 
-        return {'Bh_j' : Bh_j}
-
-    def reduce_func(self, nodes):
-        Ah_i = nodes.data['Ah']
-        Bh_j = nodes.mailbox['Bh_j']
-        h = Ah_i + torch.sum( Bh_j, dim=1 )
-        return {'h' : h}
-    
-    def forward(self, g, h, e):
-        
-        h_in = h  # for residual connection
-        
-        g.ndata['h']  = h 
-        g.ndata['Ah'] = self.A(h) 
-        g.ndata['Bh'] = self.B(h) 
-        
-        g.update_all(self.message_func, self.reduce_func) 
-        h = g.ndata['h']  # result of graph convolution
-        
-        if self.batch_norm:
-            h = self.bn_node_h(h)  # batch normalization  
-        
-        h = F.relu(h)  # non-linear activation
-        
-        if self.residual:
-            h = h_in + h  # residual connection
-            
-        if self.dropout != 0:
-            h = self.drop_h(h)  # dropout  
-        
-        return h, e
-    
-
 class GatedGCNLayer(nn.Module):
     def __init__(self, input_dim, output_dim, dropout=0.0, batch_norm=True, residual=True, **kwargs):
         super().__init__()
