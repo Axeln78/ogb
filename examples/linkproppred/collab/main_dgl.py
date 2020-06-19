@@ -412,7 +412,13 @@ def main():
         'Hits@100': Logger(args.runs, args),
     }
     
-    tb_logger = SummaryWriter(os.path.join("logs", f"{args.gnn_type}-L{args.num_layer}-H{args.emb_dim}-LR{args.lr}", time.strftime("%Y%m%dT%H%M%S")))
+    tb_logger = SummaryWriter(
+        os.path.join(
+            "logs", 
+            f"{args.gnn_type}-L{args.num_layer}-h{args.emb_dim}-d{args.dropout}-LR{args.lr}", 
+            time.strftime("%Y%m%dT%H%M%S")
+        )
+    )
     
     for run in range(args.runs):
         assert args.runs == 1
