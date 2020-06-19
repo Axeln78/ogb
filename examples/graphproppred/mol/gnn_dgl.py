@@ -24,7 +24,7 @@ class MLPLayer(nn.Module):
         if dropout != 0.0:
             self.drop_h = nn.Dropout(dropout)
 
-    def forward(self, g, h, e, snorm_n, snorm_e):
+    def forward(self, g, h, e):
         
         h_in = h  # for residual connection
         
@@ -45,10 +45,9 @@ class MLPLayer(nn.Module):
 
 
 class GatedGCNLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout=0.0, graph_norm=True, batch_norm=True, residual=True, **kwargs):
+    def __init__(self, input_dim, output_dim, dropout=0.0, batch_norm=True, residual=True, **kwargs):
         super().__init__()
         self.dropout = dropout
-        self.graph_norm = graph_norm
         self.batch_norm = batch_norm
         self.residual = residual
         
@@ -82,7 +81,7 @@ class GatedGCNLayer(nn.Module):
         h = Ah_i + torch.sum( sigma_ij * Bh_j, dim=1 ) / ( torch.sum( sigma_ij, dim=1 ) + 1e-6 )
         return {'h' : h}
     
-    def forward(self, g, h, e, snorm_n, snorm_e):
+    def forward(self, g, h, e):
         
         h_in = h  # for residual connection
         e_in = e  # for residual connection
@@ -99,10 +98,6 @@ class GatedGCNLayer(nn.Module):
         g.update_all(self.message_func, self.reduce_func) 
         h = g.ndata['h']  # result of graph convolution
         e = g.edata['e']  # result of graph convolution
-        
-        if self.graph_norm:
-            h = h * snorm_n  # normalize activation w.r.t. graph size
-            e = e * snorm_e  # normalize activation w.r.t. graph size
         
         if self.batch_norm:
             h = self.bn_node_h(h)  # batch normalization  
@@ -125,7 +120,7 @@ class GatedGCNLayer(nn.Module):
 class GNN(nn.Module):
     
     def __init__(self, gnn_type, num_tasks, num_layer=4, emb_dim=256, 
-                 dropout=0.0, graph_norm=True, batch_norm=True, 
+                 dropout=0.0, batch_norm=True, 
                  residual=True, graph_pooling="mean"):
         super().__init__()
         
@@ -133,7 +128,6 @@ class GNN(nn.Module):
         self.num_layer = num_layer
         self.emb_dim = emb_dim
         self.dropout = dropout
-        self.graph_norm = graph_norm
         self.batch_norm = batch_norm
         self.residual = residual
         self.graph_pooling = graph_pooling
@@ -147,7 +141,7 @@ class GNN(nn.Module):
         }.get(gnn_type, GatedGCNLayer)
          
         self.layers = nn.ModuleList([
-            gnn_layer(emb_dim, emb_dim, dropout=dropout, graph_norm=graph_norm, batch_norm=batch_norm, residual=residual) 
+            gnn_layer(emb_dim, emb_dim, dropout=dropout, batch_norm=batch_norm, residual=residual) 
                 for _ in range(num_layer) 
         ])
         
@@ -159,13 +153,13 @@ class GNN(nn.Module):
         
         self.graph_pred_linear = torch.nn.Linear(emb_dim, num_tasks)
         
-    def forward(self, g, h, e, snorm_n, snorm_e):
+    def forward(self, g, h, e):
         
         h = self.atom_encoder(h)
         e = self.bond_encoder(e)
         
         for conv in self.layers:
-            h, e = conv(g, h, e, snorm_n, snorm_e)
+            h, e = conv(g, h, e)
         g.ndata['h'] = h
         
         hg = self.pooler(g, 'h')
