@@ -148,7 +148,6 @@ class GNN(nn.Module):
         
         gnn_layer = {
             'gated-gcn': GatedGCNLayer,
-            'gcn': GCNLayer,
             'mlp': MLPLayer
         }.get(gnn_type, GatedGCNLayer)
          
@@ -317,14 +316,14 @@ def main():
     parser.add_argument('--eval_steps', type=int, default=1)
     parser.add_argument('--runs', type=int, default=1)
     
-    parser.add_argument('--gnn_type', type=str, default='gcn')
+    parser.add_argument('--gnn_type', type=str, default='gated-gcn')
     parser.add_argument('--num_layer', type=int, default=3)
     parser.add_argument('--emb_dim', type=int, default=64)
     parser.add_argument('--dropout', type=float, default=0.0)
     
     parser.add_argument('--batch_size', type=int, default=32*1024)
-    parser.add_argument('--lr', type=float, default=0.001)
-    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--lr', type=float, default=0.01)
+    parser.add_argument('--epochs', type=int, default=200)
     
     args = parser.parse_args()
     print(args)
