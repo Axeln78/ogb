@@ -22,15 +22,13 @@ reg_criterion = torch.nn.MSELoss()
 def train(model, device, loader, optimizer, task_type):
     model.train()
 
-    for step, (batch_graphs, batch_labels, batch_snorm_h, batch_snorm_e) in enumerate(tqdm(loader, desc="Iteration")):
+    for step, (batch_graphs, batch_labels) in enumerate(tqdm(loader, desc="Iteration")):
         batch_graphs = batch_graphs.to(device)
         batch_labels = batch_labels.to(device)
         batch_h = batch_graphs.ndata['feat'].to(device)
         batch_e = batch_graphs.edata['feat'].to(device)
-        batch_snorm_h = batch_snorm_h.to(device)
-        batch_snorm_e = batch_snorm_e.to(device)
 
-        pred = model(batch_graphs, batch_h, batch_e, batch_snorm_h, batch_snorm_e)
+        pred = model(batch_graphs, batch_h, batch_e)
         
         optimizer.zero_grad()
         
@@ -49,16 +47,14 @@ def eval(model, device, loader, evaluator):
     y_true = []
     y_pred = []
 
-    for step, (batch_graphs, batch_labels, batch_snorm_h, batch_snorm_e) in enumerate(tqdm(loader, desc="Iteration")):
+    for step, (batch_graphs, batch_labels) in enumerate(tqdm(loader, desc="Iteration")):
         batch_graphs = batch_graphs.to(device)
         batch_labels = batch_labels.to(device)
         batch_h = batch_graphs.ndata['feat'].to(device)
         batch_e = batch_graphs.edata['feat'].to(device)
-        batch_snorm_h = batch_snorm_h.to(device)
-        batch_snorm_e = batch_snorm_e.to(device)
 
         with torch.no_grad():
-            pred = model(batch_graphs, batch_h, batch_e, batch_snorm_h, batch_snorm_e)
+            pred = model(batch_graphs, batch_h, batch_e)
 
         y_true.append(batch_labels.view(pred.shape).detach().cpu())
         y_pred.append(pred.detach().cpu())
@@ -73,19 +69,9 @@ def eval(model, device, loader, evaluator):
 
 def collate_dgl(samples):
     graphs, labels = map(list, zip(*samples))
-    
     batched_graph = dgl.batch(graphs)
-    
     labels = torch.stack(labels)
-    
-    tab_sizes_n = [ graphs[i].number_of_nodes() for i in range(len(graphs))]
-    tab_snorm_n = [ torch.FloatTensor(size, 1).fill_(1./(float(size) + 1e-6)) for size in tab_sizes_n ]
-    snorm_n = torch.cat(tab_snorm_n).sqrt()  
-    tab_sizes_e = [ graphs[i].number_of_edges() for i in range(len(graphs))]
-    tab_snorm_e = [ torch.FloatTensor(size, 1).fill_(1./(float(size) + 1e-6)) for size in tab_sizes_e ]
-    snorm_e = torch.cat(tab_snorm_e).sqrt()
-    
-    return batched_graph, labels, snorm_n, snorm_e
+    return batched_graph, labels
 
 
 def main():
@@ -101,8 +87,8 @@ def main():
                         help='number of GNN message passing layers (default: 5)')
     parser.add_argument('--emb_dim', type=int, default=300,
                         help='dimensionality of hidden units in GNNs (default: 300)')
-    parser.add_argument('--batch_size', type=int, default=64,
-                        help='input batch size for training (default: 64)')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=100,
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -132,14 +118,9 @@ def main():
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, 
                              num_workers = args.num_workers, collate_fn=collate_dgl)
 
-    if args.gnn == 'gated-gcn':
-        model = GNN(gnn_type='gated-gcn', num_tasks=dataset.num_tasks, num_layer=args.num_layer, 
-                    emb_dim=args.emb_dim, dropout=args.dropout, graph_norm=True, batch_norm=True, 
-                    residual=True, graph_pooling="mean")
-        model.to(device)
-    elif args.gnn == 'mlp':
-        model = GNN(gnn_type='mlp', num_tasks=dataset.num_tasks, num_layer=args.num_layer, 
-                    emb_dim=args.emb_dim, dropout=args.dropout, graph_norm=True, batch_norm=True, 
+    if args.gnn in ['gated-gcn', 'mlp']:
+        model = GNN(gnn_type=args.gnn, num_tasks=dataset.num_tasks, num_layer=args.num_layer, 
+                    emb_dim=args.emb_dim, dropout=args.dropout, batch_norm=True, 
                     residual=True, graph_pooling="mean")
         model.to(device)
     elif args.gnn == 'Cheb_net':
